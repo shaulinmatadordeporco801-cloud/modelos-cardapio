@@ -123,7 +123,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                     <div class="relative aspect-video overflow-hidden">
                         <img src="{prod.image_url}" alt="{prod.name}" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
                         <div class="absolute inset-0 bg-gradient-to-t from-white dark:from-neutral-950 via-transparent to-transparent opacity-40"></div>
-                        <div class="absolute top-2 right-2 md:top-4 md:right-4 bg-brand-blue text-white font-bebas text-sm md:text-xl px-2 md:px-4 py-0.5 md:py-1 rounded shadow-lg">R$ {prod.price:.2f}</div>
+                        <div class="absolute top-2 right-2 md:top-4 md:right-4 bg-brand-orange text-white font-bebas text-sm md:text-xl px-2 md:px-4 py-0.5 md:py-1 rounded shadow-lg">R$ {prod.price:.2f}</div>
                     </div>
                     """
                 
@@ -278,7 +278,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
             }}
         </script>
     </head>
-    <body class="bg-rich-black dark:bg-neutral-950 text-dark-text dark:text-neutral-100 font-montserrat overflow-x-hidden selection:bg-brand-blue selection:text-white transition-colors duration-300">
+    <body class="bg-rich-black dark:bg-neutral-950 text-dark-text dark:text-neutral-100 font-montserrat overflow-x-hidden selection:bg-brand-orange selection:text-white transition-colors duration-300">
         
         <!-- EMBERS BACKGROUND -->
         <div class="embers-container" id="embers"></div>
@@ -312,13 +312,14 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
           </div>
         </nav>
         
-        <div id="admin-modal" class="fixed inset-0 z-[200] hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
-            <div class="bg-neutral-900 w-full max-w-md rounded-3xl p-8 shadow-2xl border border-white/5">
-                <h3 class="font-bebas text-3xl mb-4">Acesso Administrativo</h3>
-                <input type="password" id="admin-password" class="w-full bg-neutral-800 rounded-2xl p-4 text-center text-2xl mb-6">
+        <div id="admin-modal" class="fixed inset-0 z-[200] hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-6">
+            <div class="bg-neutral-900 w-full max-w-md rounded-3xl p-8 shadow-2xl border border-brand-orange/20">
+                <h3 class="font-bebas text-4xl mb-2 text-brand-orange uppercase tracking-widest">Acesso Restrito</h3>
+                <p class="text-neutral-400 text-xs mb-8 uppercase tracking-widest font-bold">Portal do Mestre Churrasqueiro</p>
+                <input type="password" id="admin-password" placeholder="••••••" class="w-full bg-neutral-800 border border-white/5 rounded-2xl p-5 text-center text-3xl mb-8 focus:border-brand-orange/50 focus:outline-none transition-all placeholder:opacity-20 text-white">
                 <div class="flex gap-4">
-                    <button onclick="closeAdminModal()" class="flex-1 font-bold">Cancelar</button>
-                    <button onclick="attemptAdminLogin()" class="flex-1 bg-brand-orange text-white py-4 rounded-2xl font-bold">Entrar</button>
+                    <button onclick="closeAdminModal()" class="flex-1 font-bold text-neutral-500 hover:text-white transition-colors uppercase tracking-widest text-xs">Voltar</button>
+                    <button onclick="attemptAdminLogin()" class="flex-1 bg-brand-orange text-white py-4 rounded-2xl font-bold uppercase tracking-widest text-xs shadow-lg shadow-brand-orange/20 hover:scale-[1.02] active:scale-95 transition-all">Desbloquear</button>
                 </div>
             </div>
         </div>
@@ -416,9 +417,14 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
 
             function switchTab(id) {{
                 document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-                document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('bg-brand-blue', 'text-white'));
+                document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('bg-brand-orange', 'text-white', 'shadow-[0_5px_15px_rgba(255,107,0,0.2)]'));
+                document.querySelectorAll('.tab-btn').forEach(el => el.classList.add('text-neutral-400', 'hover:bg-brand-orange/10', 'hover:text-brand-orange'));
+                
+                const activeBtn = document.getElementById('tab-btn-' + id);
+                activeBtn.classList.add('bg-brand-orange', 'text-white', 'shadow-[0_5px_15px_rgba(255,107,0,0.2)]');
+                activeBtn.classList.remove('text-neutral-400', 'hover:bg-brand-orange/10', 'hover:text-brand-orange');
+                
                 document.getElementById('tab-content-' + id).classList.add('active');
-                document.getElementById('tab-btn-' + id).classList.add('bg-brand-orange', 'text-white');
                 filterSubCat('all');
             }}
 
