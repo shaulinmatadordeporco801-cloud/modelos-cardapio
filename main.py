@@ -273,12 +273,22 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
           .no-scrollbar {{ -ms-overflow-style: none; scrollbar-width: none; }}
         </style>
         <script>
-            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {{
-                document.documentElement.classList.add('dark');
+            function applyTheme() {{
+                const theme = localStorage.getItem('theme');
+                if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {{
+                    document.documentElement.classList.add('dark');
+                    document.body.classList.add('bg-neutral-950', 'text-neutral-100');
+                    document.body.classList.remove('bg-neutral-50', 'text-neutral-900');
+                }} else {{
+                    document.documentElement.classList.remove('dark');
+                    document.body.classList.add('bg-neutral-50', 'text-neutral-900');
+                    document.body.classList.remove('bg-neutral-950', 'text-neutral-100');
+                }}
             }}
+            applyTheme();
         </script>
     </head>
-    <body class="bg-rich-black dark:bg-neutral-950 text-dark-text dark:text-neutral-100 font-montserrat overflow-x-hidden selection:bg-brand-orange selection:text-white transition-colors duration-300">
+    <body class="font-montserrat overflow-x-hidden selection:bg-brand-orange selection:text-white transition-colors duration-500">
         
         <!-- EMBERS BACKGROUND -->
         <div class="embers-container" id="embers"></div>
@@ -336,7 +346,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
             </div>
         </section>
 
-        <section id="menu" class="py-24 relative bg-neutral-950">
+        <section id="menu" class="py-24 relative bg-transparent">
             <div class="container mx-auto px-4">
                 <div class="text-center mb-16">
                    <h2 class="font-bebas text-5xl md:text-8xl mb-10 text-neutral-100 uppercase">Saboreie momentos em <span class="text-brand-orange">família.</span></h2>
@@ -378,12 +388,11 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
             function toggleDarkMode() {{
                 const html = document.documentElement;
                 if (html.classList.contains('dark')) {{
-                    html.classList.remove('dark');
                     localStorage.setItem('theme', 'light');
                 }} else {{
-                    html.classList.add('dark');
                     localStorage.setItem('theme', 'dark');
                 }}
+                applyTheme();
             }}
 
             const ADMIN_TOKEN = "admin_logged_in";
@@ -459,6 +468,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                     ember.style.animationDuration = `${{duration}}s`;
                     ember.style.animationDelay = `${{delay}}s`;
                     
+                    ember.style.opacity = document.documentElement.classList.contains('dark') ? '0.6' : '0.2';
                     container.appendChild(ember);
                 }}
             }}
