@@ -9,9 +9,17 @@ import logging
 from database import SessionLocal, engine
 from models import Base, Category, Product
 
+from typing import List, Dict, Any, Union
+
 # Configuração de Logs
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Classe utilitária para Categorias Virtuais (Backend Specialist Pattern)
+class VirtualCategory:
+    def __init__(self, id: Union[int, str], name: str):
+        self.id = id
+        self.name = name
 
 app = FastAPI(title="Sua Empresa")
 
@@ -54,6 +62,8 @@ def render_logo(size="md", classes=""):
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request, db: Session = Depends(get_db)):
+    tabs_btns_html: str = ""
+    tabs_content_html: str = ""
     try:
         # Order categories manually to guarantee the pyramid layout
         all_categories = db.query(Category).all()
@@ -67,8 +77,8 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
         
         # Aba "Todos" no início
         all_prods = products
-        # Criar um objeto de categoria "virtual" para o "Todos"
-        all_cat = type('obj', (object,), {"id": "all", "name": "Todos"})
+        # Usar classe utilitária formal em vez de type dynamic
+        all_cat = VirtualCategory(id="all", name="Todos")
         categories_data.append({"category": all_cat, "products": all_prods})
         
         for cat in categories:
@@ -124,11 +134,12 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                 badge_class = "" if not prod.is_available else "hidden"
                 
                 # Resgate do nome da categoria original
-                if cat.id == "all":
+                cat_id = getattr(cat, 'id', None)
+                if cat_id == "all":
                     original_cat = db.query(Category).filter(Category.id == prod.category_id).first()
                     display_cat_name = original_cat.name if original_cat else ""
                 else:
-                    display_cat_name = cat.name
+                    display_cat_name = getattr(cat, 'name', "")
 
                 # Image / Placeholder logic
                 if prod.image_url:
@@ -454,26 +465,44 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
             }}
 
             function switchTab(id) {{
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-                document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('bg-brand-orange', 'text-white', 'shadow-[0_5px_15px_rgba(255,107,0,0.2)]'));
-                document.querySelectorAll('.tab-btn').forEach(el => el.classList.add('text-neutral-400', 'hover:bg-brand-orange/10', 'hover:text-brand-orange'));
+                // Performance optimization: cache selections
+                const contents = document.querySelectorAll('.tab-content');
+                const btns = document.querySelectorAll('.tab-btn');
+                
+                contents.forEach(el => el.classList.remove('active'));
+                btns.forEach(el => {{
+                    el.classList.remove('bg-brand-orange', 'text-white', 'shadow-[0_5px_15px_rgba(255,107,0,0.2)]');
+                    el.classList.add('text-neutral-400', 'hover:bg-brand-orange/10', 'hover:text-brand-orange');
+                }});
                 
                 const activeBtn = document.getElementById('tab-btn-' + id);
-                activeBtn.classList.add('bg-brand-orange', 'text-white', 'shadow-[0_5px_15px_rgba(255,107,0,0.2)]');
-                activeBtn.classList.remove('text-neutral-400', 'hover:bg-brand-orange/10', 'hover:text-brand-orange');
+                if (activeBtn) {{
+                    activeBtn.classList.add('bg-brand-orange', 'text-white', 'shadow-[0_5px_15px_rgba(255,107,0,0.2)]');
+                    activeBtn.classList.remove('text-neutral-400', 'hover:bg-brand-orange/10', 'hover:text-brand-orange');
+                }}
                 
-                document.getElementById('tab-content-' + id).classList.add('active');
+                const activeContent = document.getElementById('tab-content-' + id);
+                if (activeContent) activeContent.classList.add('active');
+                
                 filterSubCat('all');
             }}
 
             function filterSubCat(s) {{
-                document.querySelectorAll('.subcat-btn').forEach(b => {{
-                    if (b.innerText.toLowerCase() === s.toLowerCase() || (s === 'all' && b.innerText === 'Todos')) b.classList.add('bg-brand-orange', 'text-white');
+                const btns = document.querySelectorAll('.subcat-btn');
+                const cards = document.querySelectorAll('.product-card');
+                
+                btns.forEach(b => {{
+                    const text = b.innerText.trim().toLowerCase();
+                    const isMatch = text === s.toLowerCase() || (s === 'all' && (text === 'todos'));
+                    if (isMatch) b.classList.add('bg-brand-orange', 'text-white');
                     else b.classList.remove('bg-brand-orange', 'text-white');
                 }});
-                document.querySelectorAll('.product-card').forEach(c => {{
-                    c.style.display = (s === 'all' || c.getAttribute('data-subcat') === s) ? 'flex' : 'none';
+                
+                cards.forEach(c => {{
+                    const subcat = c.getAttribute('data-subcat');
+                    c.style.display = (s === 'all' || subcat === s) ? 'flex' : 'none';
                 }});
+                
                 if (window.ScrollTrigger) ScrollTrigger.refresh();
             }}
 
@@ -482,13 +511,19 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                 const container = document.getElementById('embers');
                 if (!container) return;
                 
-                for (let i = 0; i < 50; i++) {{
+                // Clear existing embers to avoid leaks
+                container.innerHTML = '';
+                
+                const fragment = document.createDocumentFragment();
+                const count = window.innerWidth < 768 ? 20 : 50;
+                
+                for (let i = 0; i < count; i++) {{
                     const ember = document.createElement('div');
                     ember.className = 'ember';
                     
-                    const size = Math.random() * 4 + 1;
+                    const size = Math.random() * 3 + 1;
                     const left = Math.random() * 100;
-                    const duration = Math.random() * 10 + 5;
+                    const duration = Math.random() * 8 + 4;
                     const delay = Math.random() * 10;
                     
                     ember.style.width = `${{size}}px`;
@@ -497,9 +532,9 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                     ember.style.animationDuration = `${{duration}}s`;
                     ember.style.animationDelay = `${{delay}}s`;
                     
-                    ember.style.opacity = document.documentElement.classList.contains('dark') ? '0.6' : '0.2';
-                    container.appendChild(ember);
+                    fragment.appendChild(ember);
                 }}
+                container.appendChild(fragment);
             }}
 
             document.addEventListener("DOMContentLoaded", () => {{
@@ -520,4 +555,5 @@ class HTMLContent(HTMLResponse):
     def __init__(self, content: str, status_code: int = 200):
         # Limpeza agressiva de qualquer espaço ou caractere invisível no início do conteúdo
         clean_content = content.lstrip()
-        super().__init__(clean_content, status_code=status_code)
+        # Uso direto da classe base para evitar confusão do linter com super()
+        HTMLResponse.__init__(self, content=clean_content, status_code=status_code)
