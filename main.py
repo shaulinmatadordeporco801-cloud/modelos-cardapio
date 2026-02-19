@@ -320,9 +320,9 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
         <div class="fixed inset-0 wood-texture pointer-events-none z-[1]"></div>
 
         <nav class="fixed top-0 left-0 w-full z-[100] bg-white/80 dark:bg-carbon/80 backdrop-blur-xl border-b border-black/5 dark:border-white/5 py-3 md:py-4 px-6 md:px-12 flex justify-between items-center shadow-sm transition-colors duration-300">
-          <div class="flex items-center gap-3 group cursor-pointer relative z-[110]">
+          <div onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="flex items-center gap-3 group cursor-pointer relative z-[110]">
             <div class="flex flex-col">
-              <span class="font-bebas text-xl md:text-2xl tracking-wider leading-none text-white">Sua Empresa</span>
+              <span class="font-bebas text-xl md:text-2xl tracking-wider leading-none text-white transition-colors group-hover:text-brand-orange">Sua Empresa</span>
               <span class="text-[9px] md:text-[10px] text-brand-orange tracking-[0.2em] font-bold uppercase leading-none mt-1">Cardápio Digital</span>
             </div>
           </div>
@@ -351,7 +351,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
             <div class="bg-neutral-900 w-full max-w-md rounded-3xl p-8 shadow-2xl border border-brand-orange/20">
                 <h3 class="font-bebas text-4xl mb-2 text-brand-orange uppercase tracking-widest">Acesso Restrito</h3>
                 <p class="text-neutral-400 text-xs mb-8 uppercase tracking-widest font-bold">Portal do Mestre Churrasqueiro</p>
-                <input type="password" id="admin-password" placeholder="••••••" class="w-full bg-neutral-800 border border-white/5 rounded-2xl p-5 text-center text-3xl mb-8 focus:border-brand-orange/50 focus:outline-none transition-all placeholder:opacity-20 text-white">
+                <input type="password" id="admin-password" placeholder="••••••" onkeydown="if(event.key==='Enter') attemptAdminLogin()" class="w-full bg-neutral-800 border border-white/5 rounded-2xl p-5 text-center text-3xl mb-8 focus:border-brand-orange/50 focus:outline-none transition-all placeholder:opacity-20 text-white">
                 <div class="flex gap-4">
                     <button onclick="closeAdminModal()" class="flex-1 font-bold text-neutral-500 hover:text-white transition-colors uppercase tracking-widest text-xs">Voltar</button>
                     <button onclick="attemptAdminLogin()" class="flex-1 bg-brand-orange text-white py-4 rounded-2xl font-bold uppercase tracking-widest text-xs shadow-lg shadow-brand-orange/20 hover:scale-[1.02] active:scale-95 transition-all">Desbloquear</button>
@@ -433,6 +433,11 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                     localStorage.setItem('theme', 'dark');
                 }}
                 applyTheme();
+                // Auto-close menu for better UX
+                const menu = document.getElementById('settings-menu');
+                if (menu) {{
+                    menu.classList.add('opacity-0', 'invisible');
+                }}
             }}
 
             const ADMIN_TOKEN = "admin_logged_in";
@@ -454,13 +459,39 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
             }}
 
             async function toggleAvailability(id) {{
-                const res = await fetch(`/admin/toggle/${{id}}`, {{ method: 'POST' }});
-                const data = await res.json();
-                if (data.status === 'success') {{
-                    const card = document.getElementById(`product-card-${{id}}`);
-                    const b = document.getElementById(`status-badge-${{id}}`);
-                    if (data.is_available) {{ card.classList.remove('opacity-50', 'grayscale', 'select-none'); b.classList.add('hidden'); }}
-                    else {{ card.classList.add('opacity-50', 'grayscale', 'select-none'); b.classList.remove('hidden'); }}
+                const btn = event.currentTarget;
+                const originalContent = btn.innerHTML;
+                
+                // Add loading state
+                btn.disabled = true;
+                btn.innerHTML = '<svg class="w-4 h-4 animate-spin text-brand-orange" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+                
+                try {{
+                    const res = await fetch(`/admin/toggle/${{id}}`, {{ method: 'POST' }});
+                    const data = await res.json();
+                    if (data.status === 'success') {{
+                        const card = document.getElementById(`product-card-${{id}}`);
+                        const badge = document.getElementById(`status-badge-${{id}}`);
+                        if (data.is_available) {{ 
+                            card.classList.remove('opacity-50', 'grayscale', 'select-none'); 
+                            badge.classList.add('hidden'); 
+                            btn.querySelector('svg').classList.remove('text-green-500');
+                            btn.querySelector('svg').classList.add('text-red-500');
+                        }} else {{ 
+                            card.classList.add('opacity-50', 'grayscale', 'select-none'); 
+                            badge.classList.remove('hidden'); 
+                            btn.querySelector('svg').classList.remove('text-red-500');
+                            btn.querySelector('svg').classList.add('text-green-500');
+                        }}
+                        // Update current button icon based on state
+                        const iconColor = data.is_available ? 'text-red-500' : 'text-green-500';
+                        btn.innerHTML = `<svg class="w-4 h-4 ${{iconColor}}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>`;
+                    }}
+                }} catch (e) {{
+                    console.error("Toggle error:", e);
+                    btn.innerHTML = originalContent;
+                }} finally {{
+                    btn.disabled = false;
                 }}
             }}
 
