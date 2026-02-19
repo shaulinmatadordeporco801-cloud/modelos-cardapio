@@ -64,30 +64,35 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
         
         # Pre-process data for the view
         categories_data = []
+        
+        # Aba "Todos" no início
+        all_prods = products
+        # Criar um objeto de categoria "virtual" para o "Todos"
+        all_cat = type('obj', (object,), {"id": "all", "name": "Todos"})
+        categories_data.append({"category": all_cat, "products": all_prods})
+        
         for cat in categories:
             prods = [p for p in products if p.category_id == cat.id]
             categories_data.append({"category": cat, "products": prods})
         
-        # Default active tab (first one)
-        first_cat_id = categories[0].id if categories else 0
+        # Default active tab (primeira é "Todos")
+        first_cat_id = "all"
         
         # Build tabs buttons HTML
         tabs_btns_html = ""
-        for item in categories_data:
+        for i, item in enumerate(categories_data):
             cat = item['category']
             is_active = (cat.id == first_cat_id)
             btn_class = "bg-brand-orange text-white shadow-[0_5px_15px_rgba(255,107,0,0.2)]" if is_active else "text-neutral-400 hover:bg-brand-orange/10 hover:text-brand-orange"
             
-            # Pyramid layout using stable Flexbox (v1.0.6)
-            if cat.name in ["Espetinho", "Bebidas"]:
-                # Two buttons sharing the first row
+            # Pyramid layout: Todos, Espetinho e Bebidas no topo (w-1/2 approx), outros base
+            if cat.name in ["Todos", "Espetinho", "Bebidas"]:
                 mobile_class = "w-[48%] md:w-auto"
             else:
-                # Full width buttons for the bottom rows (Pyramid base)
                 mobile_class = "w-full md:w-auto"
                 
             tabs_btns_html += f"""
-            <button onclick="switchTab({cat.id})" 
+            <button onclick="switchTab('{cat.id}')" 
                     id="tab-btn-{cat.id}"
                     class="tab-btn {mobile_class} flex items-center justify-center text-[10px] md:text-xs font-bold uppercase tracking-wider px-2 md:px-8 py-3.5 md:py-4 rounded-lg transition-all duration-300 active:scale-95 shadow-sm {btn_class}">
               {cat.name}
@@ -117,61 +122,67 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
             for prod in prods:
                 avail_class = "opacity-50 grayscale select-none" if not prod.is_available else ""
                 badge_class = "" if not prod.is_available else "hidden"
-                img_html = ""
+                
+                # Resgate do nome da categoria original
+                if cat.id == "all":
+                    original_cat = db.query(Category).filter(Category.id == prod.category_id).first()
+                    display_cat_name = original_cat.name if original_cat else ""
+                else:
+                    display_cat_name = cat.name
+
+                # Image / Placeholder logic
                 if prod.image_url:
-                    img_html = f"""
-                    <div class="relative aspect-video overflow-hidden">
-                        <img src="{prod.image_url}" alt="{prod.name}" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-                        <div class="absolute inset-0 bg-gradient-to-t from-white dark:from-neutral-950 via-transparent to-transparent opacity-40"></div>
-                        <div class="absolute top-2 right-2 md:top-4 md:right-4 bg-brand-orange text-white font-bebas text-sm md:text-xl px-2 md:px-4 py-0.5 md:py-1 rounded shadow-lg">R$ {prod.price:.2f}</div>
+                    img_content = f'<img src="{prod.image_url}" alt="{prod.name}" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />'
+                else:
+                    img_content = f"""
+                    <div class="w-full h-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center border-2 border-dashed border-neutral-300 dark:border-neutral-700">
+                        <span class="font-bebas text-lg md:text-2xl text-neutral-400 dark:text-neutral-500 tracking-widest text-center px-4">FOTO DO SEU PRODUTO</span>
                     </div>
                     """
+
+                img_html = f"""
+                <div class="relative aspect-[4/3] overflow-hidden">
+                    {img_content}
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-40"></div>
+                </div>
+                """
                 
                 admin_btn_color = "text-red-500" if prod.is_available else "text-green-500"
-                admin_btn_label = "Desativar" if prod.is_available else "Ativar"
 
                 products_grid_html += f"""
                 <div id="product-card-{prod.id}" 
-                     data-subcat="{prod.sub_category or ''}"
-                     class="product-card reveal-on-scroll group bg-neutral-900/60 backdrop-blur-md border border-brand-orange/10 dark:border-white/5 overflow-hidden transition-all duration-1000 hover:shadow-[0_25px_50px_-12px_rgba(255,107,0,0.15)] hover:border-brand-orange/40 dark:hover:border-brand-orange/40 md:hover:-translate-y-2 rounded-xl flex flex-col relative {avail_class}">
+                     class="product-card reveal-on-scroll group bg-neutral-900/60 backdrop-blur-md border border-brand-orange/10 dark:border-white/5 overflow-hidden transition-all duration-1000 hover:shadow-[0_25px_50px_-12px_rgba(255,107,0,0.15)] hover:border-brand-orange/40 dark:hover:border-brand-orange/40 rounded-xl flex flex-col relative {avail_class}">
                     <div class="absolute inset-0 pointer-events-none glass-shimmer opacity-30"></div>
                     
                     <div id="status-badge-{prod.id}" class="absolute top-2 left-2 z-20 px-2 py-0.5 rounded text-[8px] md:text-[10px] font-black uppercase tracking-widest shadow-lg transition-all {badge_class} bg-red-500 text-white">
                         ESGOTADO
                     </div>
 
-                    <div class="admin-only hidden absolute top-2 left-2 z-[30] flex gap-2">
+                    <div class="admin-only hidden absolute bottom-4 left-4 z-[30] flex gap-2">
                         <button onclick="toggleAvailability({prod.id})" class="p-2 bg-neutral-800/90 rounded-lg shadow-xl border border-brand-orange/20 hover:scale-110 active:scale-95 transition-all group/admin-btn">
                             <svg class="w-4 h-4 {admin_btn_color}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                             </svg>
-                            <span class="absolute top-full left-0 mt-1 bg-neutral-950 text-white text-[8px] px-1 py-0.5 rounded opacity-0 group-hover/admin-btn:opacity-100 whitespace-nowrap">{admin_btn_label}</span>
                         </button>
                     </div>
 
                     {img_html}
                     
-                    <div class="p-4 md:p-8 flex flex-col flex-grow {'pt-6 md:pt-10' if not prod.image_url else ''}">
-                        <div class="flex flex-col md:flex-row justify-between items-start mb-2 md:mb-3 gap-1 md:gap-4">
-                          <h4 class="font-bebas text-lg md:text-2xl tracking-wide text-neutral-100 group-hover:text-brand-orange transition-colors line-clamp-2">{prod.name}</h4>
-                          {f'<span class="text-brand-orange font-bebas text-base md:text-xl whitespace-nowrap">R$ {prod.price:.2f}</span>' if not prod.image_url else ''}
+                    <div class="p-6 md:p-8 flex flex-col flex-grow">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-[8px] font-black uppercase tracking-[0.3em] text-brand-orange">{display_cat_name}</span>
+                            <span class="text-brand-orange font-bebas text-lg md:text-2xl ml-2">R$ {prod.price:.2f}</span>
                         </div>
-                        <p class="text-[10px] md:text-xs text-neutral-400 font-light leading-relaxed mb-4 md:mb-6 flex-grow line-clamp-3">{prod.description or ""}</p>
+                        <h4 class="font-bebas text-2xl md:text-3xl tracking-wide text-neutral-100 group-hover:text-brand-orange transition-colors line-clamp-1 mb-2">{prod.name}</h4>
+                        <p class="text-[10px] md:text-sm text-neutral-400 font-light leading-relaxed line-clamp-2">{prod.description or ""}</p>
                     </div>
                 </div>
                 """
 
             tabs_content_html += f"""
             <div id="tab-content-{cat.id}" class="tab-content {content_class}">
-                <div class="mb-16 last:mb-0">
-                    <div class="flex items-center gap-4 md:gap-6 mb-8">
-                        <h3 class="font-bebas text-3xl md:text-4xl text-brand-orange tracking-widest uppercase">{cat.name}</h3>
-                        <div class="flex-grow h-[1px] bg-gradient-to-r from-brand-orange/20 to-transparent"></div>
-                    </div>
-                    {subcat_filter_html}
-                    <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8 product-grid">
-                        {products_grid_html}
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
+                    {products_grid_html}
                 </div>
             </div>
             """
@@ -274,21 +285,22 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
         </style>
         <script>
             function applyTheme() {{
-                const theme = localStorage.getItem('theme');
-                if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {{
-                    document.documentElement.classList.add('dark');
-                    document.body.classList.add('bg-neutral-950', 'text-neutral-100');
-                    document.body.classList.remove('bg-neutral-50', 'text-neutral-900');
-                }} else {{
-                    document.documentElement.classList.remove('dark');
-                    document.body.classList.add('bg-neutral-50', 'text-neutral-900');
-                    document.body.classList.remove('bg-neutral-950', 'text-neutral-100');
+                try {{
+                    const theme = localStorage.getItem('theme');
+                    const isDark = theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                    if (isDark) {{
+                        document.documentElement.classList.add('dark');
+                    }} else {{
+                        document.documentElement.classList.remove('dark');
+                    }}
+                }} catch (e) {{
+                    console.error('Theme apply error:', e);
                 }}
             }}
             applyTheme();
         </script>
     </head>
-    <body class="font-montserrat overflow-x-hidden selection:bg-brand-orange selection:text-white transition-colors duration-500">
+    <body class="font-montserrat overflow-x-hidden selection:bg-brand-orange selection:text-white transition-colors duration-500 bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
         
         <!-- EMBERS BACKGROUND -->
         <div class="embers-container" id="embers"></div>
@@ -307,15 +319,15 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
               <a href="#menu" class="hover:text-brand-orange transition-all relative group">Cardápio</a>
               <a href="#location" class="hover:text-brand-orange transition-all relative group">Localização</a>
             </div>
-            <div class="relative group/settings">
-              <button class="p-2.5 bg-neutral-100 dark:bg-neutral-800 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
-              <div class="absolute right-0 mt-3 w-56 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl p-4 opacity-0 invisible group-hover/settings:opacity-100 group-hover/settings:visible transition-all">
-                <div class="flex items-center justify-between p-2 hover:bg-neutral-800 rounded-xl cursor-pointer" onclick="toggleDarkMode()">
-                  <span class="text-xs font-semibold">Modo Escuro</span>
-                  <div class="w-10 h-5 bg-neutral-700 rounded-full relative"><div id="theme-toggle-dot" class="absolute top-1 left-1 w-3 h-3 bg-brand-orange rounded-full transition-all dark:translate-x-5"></div></div>
+            <div class="relative">
+              <button onclick="toggleSettingsMenu()" class="p-2.5 bg-neutral-100 dark:bg-neutral-800 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all focus:outline-none"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
+              <div id="settings-menu" class="absolute right-0 mt-3 w-56 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl p-4 opacity-0 invisible transition-all z-[200]">
+                <div class="flex items-center justify-between p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl cursor-pointer" onclick="toggleDarkMode()">
+                  <span class="text-xs font-semibold text-neutral-900 dark:text-neutral-100">Modo Escuro</span>
+                  <div class="w-10 h-5 bg-neutral-200 dark:bg-neutral-700 rounded-full relative"><div id="theme-toggle-indicator" class="absolute top-1 left-1 w-3 h-3 bg-brand-orange rounded-full transition-all dark:translate-x-5"></div></div>
                 </div>
                 <div class="h-[1px] bg-neutral-100 dark:bg-neutral-800 my-2"></div>
-                <div id="admin-login-section" class="flex items-center justify-between p-2 hover:bg-neutral-800 rounded-xl cursor-pointer" onclick="showAdminLogin()"><span class="text-xs font-semibold">Admin</span></div>
+                <div id="admin-login-section" class="flex items-center justify-between p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl cursor-pointer" onclick="showAdminLogin()"><span class="text-xs font-semibold text-neutral-900 dark:text-neutral-100">Admin</span></div>
                 <div id="admin-active-section" class="hidden flex items-center justify-between p-2 hover:bg-red-50 rounded-xl cursor-pointer" onclick="logoutAdmin()"><span class="text-xs font-semibold text-red-600">Sair Admin</span></div>
               </div>
             </div>
@@ -385,6 +397,21 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
         </footer>
 
         <script>
+            function toggleSettingsMenu() {{
+                const menu = document.getElementById('settings-menu');
+                menu.classList.toggle('opacity-0');
+                menu.classList.toggle('invisible');
+            }}
+
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {{
+                const btn = document.querySelector('button[onclick="toggleSettingsMenu()"]');
+                const menu = document.getElementById('settings-menu');
+                if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {{
+                    menu.classList.add('opacity-0', 'invisible');
+                }}
+            }});
+
             function toggleDarkMode() {{
                 const html = document.documentElement;
                 if (html.classList.contains('dark')) {{
