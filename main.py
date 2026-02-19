@@ -210,7 +210,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
             darkMode: 'class',
             theme: {{
               extend: {{
-                colors: {
+                colors: {{
                   'carbon': '#0a0a0a',
                   'bone': '#e5e1d8',
                   'brand-orange': '#FF6B00', 
@@ -219,7 +219,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                   'smoke-grey': '#1A1A1A', 
                   'dark-text': '#F3F4F6', 
                   'medium-text': '#A1A1AA',
-                },
+                }},
                 fontFamily: {{
                   bebas: ['"Bebas Neue"', 'cursive'],
                   montserrat: ['Montserrat', 'sans-serif'],
@@ -520,4 +520,4 @@ class HTMLContent(HTMLResponse):
     def __init__(self, content: str, status_code: int = 200):
         # Limpeza agressiva de qualquer espaço ou caractere invisível no início do conteúdo
         clean_content = content.lstrip()
-        super().__init__(content=clean_content, status_code=status_code)
+        super().__init__(clean_content, status_code=status_code)
