@@ -273,7 +273,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
             opacity: 0.05;
           }}
           
-          body {{ background-color: #f8f8f8; color: #1a1a1a; transition: background-color 0.5s ease, color 0.5s ease; }}
+          body {{ background-color: #ffffff; color: #1a1a1a; transition: background-color 0.5s ease, color 0.5s ease; }}
           .dark body {{ background-color: #0a0a0a; color: #e5e1d8; }}
           
           .dark .rich-black-bg {{ background-color: #0a0a0a; }}
@@ -302,7 +302,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
             applyTheme();
         </script>
     </head>
-    <body class="font-montserrat overflow-x-hidden selection:bg-brand-orange selection:text-white transition-colors duration-500 bg-[#f8f8f8] text-[#1a1a1a] dark:bg-carbon dark:text-bone">
+    <body class="font-montserrat overflow-x-hidden selection:bg-brand-orange selection:text-white transition-colors duration-500 bg-white text-[#1a1a1a] dark:bg-carbon dark:text-bone">
         
         <!-- EMBERS BACKGROUND -->
         <div class="embers-container" id="embers"></div>
