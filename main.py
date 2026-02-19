@@ -140,8 +140,9 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
 
             products_grid_html = ""
             for prod in prods:
-                avail_class = "opacity-50 grayscale select-none" if not prod.is_available else ""
-                badge_class = "" if not prod.is_available else "hidden"
+                is_avail = getattr(prod, 'is_available', True)
+                avail_class = "opacity-50 grayscale select-none" if not is_avail else ""
+                badge_class = "" if not is_avail else "hidden"
                 
                 # Resgate do nome da categoria original
                 cat_id = getattr(cat, 'id', None)
@@ -168,7 +169,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                 </div>
                 """
                 
-                admin_btn_color = "text-red-500" if prod.is_available else "text-green-500"
+                admin_btn_color = "text-red-500" if is_avail else "text-green-500"
 
                 products_grid_html += f"""
                 <div id="product-card-{prod.id}" 
@@ -197,7 +198,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                     <div class="p-6 md:p-8 flex flex-col flex-grow">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-[8px] font-black uppercase tracking-[0.3em] text-brand-orange">{display_cat_name}</span>
-                            <span class="text-brand-orange font-bebas text-lg md:text-2xl ml-2">R$ {prod.price:.2f}</span>
+                            <span class="text-brand-orange font-bebas text-lg md:text-2xl ml-2">R$ {(prod.price or 0.0):.2f}</span>
                         </div>
                         <h4 class="font-bebas text-2xl md:text-3xl tracking-wide text-gray-900 dark:text-bone group-hover:text-brand-orange transition-colors line-clamp-1 mb-2">{prod.name}</h4>
                         <p class="text-[10px] md:text-sm text-gray-500 dark:text-neutral-400 font-light leading-relaxed line-clamp-2">{prod.description or ""}</p>
@@ -335,7 +336,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
         <div class="fixed inset-0 wood-texture pointer-events-none z-[1]"></div>
 
         <nav class="fixed top-0 left-0 w-full z-[100] bg-white/80 dark:bg-carbon/80 backdrop-blur-xl border-b border-black/5 dark:border-white/5 py-3 md:py-4 px-6 md:px-12 flex justify-between items-center shadow-sm transition-colors duration-300">
-          <div onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="flex items-center gap-3 group cursor-pointer relative z-[110]">
+          <div onclick="window.scrollTo({{top: 0, behavior: 'smooth'}})" class="flex items-center gap-3 group cursor-pointer relative z-[110]">
             <div class="flex flex-col">
               <span class="font-bebas text-xl md:text-2xl tracking-wider leading-none text-white transition-colors group-hover:text-brand-orange">Sua Empresa</span>
               <span class="text-[9px] md:text-[10px] text-brand-orange tracking-[0.2em] font-bold uppercase leading-none mt-1">Cardápio Digital</span>
