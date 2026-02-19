@@ -56,6 +56,16 @@ async def toggle_product_availability(product_id: int, db: Session = Depends(get
     db.commit()
     return {"status": "success", "is_available": product.is_available}
 
+@app.post("/admin/delete/{product_id}")
+async def delete_product(product_id: int, db: Session = Depends(get_db)):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    db.delete(product)
+    db.commit()
+    return {"status": "success", "message": "Product deleted"}
+
 # Helper to render Logo (SVG)
 def render_logo(size="md", classes=""):
     return ""
@@ -173,6 +183,11 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                         <button onclick="toggleAvailability({prod.id})" class="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg shadow-xl border border-brand-orange/20 hover:scale-110 active:scale-95 transition-all group/admin-btn">
                             <svg class="w-4 h-4 {admin_btn_color}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                        </button>
+                        <button onclick="deleteProduct({prod.id}, '{prod.name}')" class="p-2 bg-red-50 dark:bg-red-900/30 rounded-lg shadow-xl border border-red-500/20 hover:scale-110 active:scale-95 transition-all text-red-500 hover:bg-red-500 hover:text-white group/delete-btn">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                         </button>
                     </div>
@@ -475,15 +490,11 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                         if (data.is_available) {{ 
                             card.classList.remove('opacity-50', 'grayscale', 'select-none'); 
                             badge.classList.add('hidden'); 
-                            btn.querySelector('svg').classList.remove('text-green-500');
-                            btn.querySelector('svg').classList.add('text-red-500');
                         }} else {{ 
                             card.classList.add('opacity-50', 'grayscale', 'select-none'); 
                             badge.classList.remove('hidden'); 
-                            btn.querySelector('svg').classList.remove('text-red-500');
-                            btn.querySelector('svg').classList.add('text-green-500');
                         }}
-                        // Update current button icon based on state
+                        // Update icon color based on state
                         const iconColor = data.is_available ? 'text-red-500' : 'text-green-500';
                         btn.innerHTML = `<svg class="w-4 h-4 ${{iconColor}}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>`;
                     }}
@@ -491,6 +502,34 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                     console.error("Toggle error:", e);
                     btn.innerHTML = originalContent;
                 }} finally {{
+                    btn.disabled = false;
+                }}
+            }}
+
+            async function deleteProduct(id, name) {{
+                if (!confirm(`Tem certeza que deseja remover "${{name}}" permanentemente?`)) return;
+                
+                const btn = event.currentTarget;
+                const originalContent = btn.innerHTML;
+                
+                btn.disabled = true;
+                btn.innerHTML = '<svg class="w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+                
+                try {{
+                    const res = await fetch(`/admin/delete/${{id}}`, {{ method: 'POST' }});
+                    const data = await res.json();
+                    if (data.status === 'success') {{
+                        const card = document.getElementById(`product-card-${{id}}`);
+                        if (card) {{
+                            card.style.transform = 'scale(0.9)';
+                            card.style.opacity = '0';
+                            setTimeout(() => card.remove(), 500);
+                        }}
+                    }}
+                }} catch (e) {{
+                    console.error("Delete error:", e);
+                    alert("Erro ao remover produto.");
+                    btn.innerHTML = originalContent;
                     btn.disabled = false;
                 }}
             }}
