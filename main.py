@@ -151,7 +151,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
 
                 products_grid_html += f"""
                 <div id="product-card-{prod.id}" 
-                     class="product-card reveal-on-scroll group bg-neutral-900/60 backdrop-blur-md border border-brand-orange/10 dark:border-white/5 overflow-hidden transition-all duration-1000 hover:shadow-[0_25px_50px_-12px_rgba(255,107,0,0.15)] hover:border-brand-orange/40 dark:hover:border-brand-orange/40 rounded-xl flex flex-col relative {avail_class}">
+                     class="product-card reveal-on-scroll group bg-white dark:bg-carbon/60 backdrop-blur-md border border-black/5 dark:border-white/5 overflow-hidden transition-all duration-1000 hover:shadow-[0_25px_50px_-12px_rgba(255,107,0,0.15)] hover:border-brand-orange/40 dark:hover:border-brand-orange/40 rounded-xl flex flex-col relative {avail_class}">
                     <div class="absolute inset-0 pointer-events-none glass-shimmer opacity-30"></div>
                     
                     <div id="status-badge-{prod.id}" class="absolute top-2 left-2 z-20 px-2 py-0.5 rounded text-[8px] md:text-[10px] font-black uppercase tracking-widest shadow-lg transition-all {badge_class} bg-red-500 text-white">
@@ -159,7 +159,7 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                     </div>
 
                     <div class="admin-only hidden absolute bottom-4 left-4 z-[30] flex gap-2">
-                        <button onclick="toggleAvailability({prod.id})" class="p-2 bg-neutral-800/90 rounded-lg shadow-xl border border-brand-orange/20 hover:scale-110 active:scale-95 transition-all group/admin-btn">
+                        <button onclick="toggleAvailability({prod.id})" class="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg shadow-xl border border-brand-orange/20 hover:scale-110 active:scale-95 transition-all group/admin-btn">
                             <svg class="w-4 h-4 {admin_btn_color}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                             </svg>
@@ -173,8 +173,8 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
                             <span class="text-[8px] font-black uppercase tracking-[0.3em] text-brand-orange">{display_cat_name}</span>
                             <span class="text-brand-orange font-bebas text-lg md:text-2xl ml-2">R$ {prod.price:.2f}</span>
                         </div>
-                        <h4 class="font-bebas text-2xl md:text-3xl tracking-wide text-neutral-100 group-hover:text-brand-orange transition-colors line-clamp-1 mb-2">{prod.name}</h4>
-                        <p class="text-[10px] md:text-sm text-neutral-400 font-light leading-relaxed line-clamp-2">{prod.description or ""}</p>
+                        <h4 class="font-bebas text-2xl md:text-3xl tracking-wide text-gray-900 dark:text-bone group-hover:text-brand-orange transition-colors line-clamp-1 mb-2">{prod.name}</h4>
+                        <p class="text-[10px] md:text-sm text-gray-500 dark:text-neutral-400 font-light leading-relaxed line-clamp-2">{prod.description or ""}</p>
                     </div>
                 </div>
                 """
@@ -210,15 +210,16 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
             darkMode: 'class',
             theme: {{
               extend: {{
-                colors: {{
-                  'rich-black': '#121212', 
+                colors: {
+                  'carbon': '#0a0a0a',
+                  'bone': '#e5e1d8',
                   'brand-orange': '#FF6B00', 
                   'brand-orange-light': '#FFF0E6', 
                   'steak-gold': '#D4AF37',
                   'smoke-grey': '#1A1A1A', 
                   'dark-text': '#F3F4F6', 
                   'medium-text': '#A1A1AA',
-                }},
+                },
                 fontFamily: {{
                   bebas: ['"Bebas Neue"', 'cursive'],
                   montserrat: ['Montserrat', 'sans-serif'],
@@ -272,11 +273,12 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
             opacity: 0.05;
           }}
           
-          .dark .rich-black-bg {{ background-color: #0a0a0a; }}
-          .dark .dark-text-color {{ color: #f3f4f6; }}
-          .dark .nav-glass {{ background-color: rgba(15, 15, 15, 0.8); border-color: rgba(255, 255, 255, 0.05); }}
+          body {{ background-color: #f8f8f8; color: #1a1a1a; transition: background-color 0.5s ease, color 0.5s ease; }}
+          .dark body {{ background-color: #0a0a0a; color: #e5e1d8; }}
           
-          body {{ background-color: #121212; color: #F3F4F6; }}
+          .dark .rich-black-bg {{ background-color: #0a0a0a; }}
+          .dark .dark-text-color {{ color: #e5e1d8; }}
+          .dark .nav-glass {{ background-color: rgba(10, 10, 10, 0.8); border-color: rgba(255, 255, 255, 0.05); }}
           
           /* Hide scrollbar for Chrome, Safari and Opera */
           .no-scrollbar::-webkit-scrollbar {{ display: none; }}
@@ -300,13 +302,13 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
             applyTheme();
         </script>
     </head>
-    <body class="font-montserrat overflow-x-hidden selection:bg-brand-orange selection:text-white transition-colors duration-500 bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+    <body class="font-montserrat overflow-x-hidden selection:bg-brand-orange selection:text-white transition-colors duration-500 bg-[#f8f8f8] text-[#1a1a1a] dark:bg-carbon dark:text-bone">
         
         <!-- EMBERS BACKGROUND -->
         <div class="embers-container" id="embers"></div>
         <div class="fixed inset-0 wood-texture pointer-events-none z-[1]"></div>
 
-        <nav class="fixed top-0 left-0 w-full z-[100] bg-neutral-900/80 backdrop-blur-xl border-b border-white/5 py-3 md:py-4 px-6 md:px-12 flex justify-between items-center shadow-sm transition-colors duration-300">
+        <nav class="fixed top-0 left-0 w-full z-[100] bg-white/80 dark:bg-carbon/80 backdrop-blur-xl border-b border-black/5 dark:border-white/5 py-3 md:py-4 px-6 md:px-12 flex justify-between items-center shadow-sm transition-colors duration-300">
           <div class="flex items-center gap-3 group cursor-pointer relative z-[110]">
             <div class="flex flex-col">
               <span class="font-bebas text-xl md:text-2xl tracking-wider leading-none text-white">Sua Empresa</span>
